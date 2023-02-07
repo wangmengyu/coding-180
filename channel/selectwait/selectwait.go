@@ -19,7 +19,7 @@ func makeGen(done chan struct{}) chan string {
 				done <- struct{}{}
 			case <-time.After(1 * time.Second): // 开始等待1秒
 				fmt.Println("i=", i)
-				time.Sleep(2 * time.Second)
+				time.Sleep(3 * time.Second)
 				fmt.Println("after 2 second")
 				ch <- fmt.Sprintf("generate i=%d", i)
 				i++
