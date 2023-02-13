@@ -5,44 +5,41 @@ import (
 	"time"
 )
 
-// doWork 一直从管道收数据进行处理
-func doWork(i int, ch chan int) {
-	for v := range ch {
-		fmt.Printf("receive %c from worker %d\n", v, i)
-	}
+func createWorker(i int) chan int {
+	ch := make(chan int, 0)
+	go doWorker(ch, i)
+	return ch
+
 }
 
-// createWorker  创建worker
-func createWorker(i int) chan int {
-	ch := make(chan int)
-	go doWork(i, ch)
-	return ch
+func doWorker(ch chan int, i int) {
+	for n := range ch {
+		fmt.Printf("read %c from worker %d\n", n, i)
+	}
 }
 
 // chanDemo
 func chanDemo() {
-	// 建立10个通道的数组
-	var chList [10]chan int
+	// 提供10个channel,
+	// 每个通道分别处理接收到的数据.(绑定goroutine)
 
-	//每个通道都可以消耗通道里的元素
+	chList := make([]chan int, 0)
 	for i := 0; i < 10; i++ {
 		ch := createWorker(i)
-		chList[i] = ch
-
+		chList = append(chList, ch)
 	}
-	// 向通道内按照顺序放10个a开头的字符
+
 	for i := 0; i < 10; i++ {
 		chList[i] <- 'a' + i
 	}
 
-	//  向通道内按照顺序放10个A开头的字符
 	for i := 0; i < 10; i++ {
 		chList[i] <- 'A' + i
 	}
 
 	time.Sleep(1 * time.Second)
-
 }
+
 func main() {
 
 	chanDemo()
