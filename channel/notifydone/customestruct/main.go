@@ -3,43 +3,47 @@ package main
 import "fmt"
 
 type worker struct {
-	in   chan int      // 处理数据的管道
-	done chan struct{} // 通知完成一个元素的处理
+	in   chan int
+	done chan struct{}
 }
 
 func createWorker(i int) worker {
 	w := worker{
-		in:   make(chan int),
-		done: make(chan struct{}),
+		in:   make(chan int),      // 初始化管道
+		done: make(chan struct{}), // 初始化完成信号管道
 	}
-	go doWorker(i, w)
+	go doWorker(&w, i)
 	return w
-
 }
 
-// doWorker 消耗管道内元素
-func doWorker(i int, w worker) {
+func doWorker(w *worker, i int) {
 	for n := range w.in {
 		fmt.Printf("receive %c from worker %d\n", n, i)
-		w.done <- struct{}{} // 发送元素处理完毕标记, 做完一个发送一个处理完的信号。
+		// 为什么马上传回去?
+		//  不马上传回就变成死循环了.
+		w.done <- struct{}{}
 	}
 
 }
 func main() {
+	// 建立10个管道, 并且绑定各自的协程
+	// 每个管道输入一个字符. 并行的进行字符的输出.
+	// 在管道内完成任务告知外部协程完成信号,
+	// 等到所有协程都发送了完成信号结束运行
 
-	// 建立10个管道。
-	var workers [10]worker
+	workerList := make([]worker, 0)
 	for i := 0; i < 10; i++ {
-		workers[i] = createWorker(i)
+		workerList = append(workerList, createWorker(i))
+	}
+	for i := 0; i < 10; i++ {
+		// 对每个管道输入一个字符
+		workerList[i].in <- 'a' + i
 	}
 
-	// 先输入小写字母 到每个管道
-	for i, w := range workers {
-		w.in <- i + 'a'
+	for i := 0; i < 10; i++ {
+		<-workerList[i].done
 	}
-	// 遍历done的管道接收掉处理完毕的信号
-	for _, w := range workers {
-		<-w.done
-	}
+
+	fmt.Println("done")
 
 }
